@@ -1,0 +1,2 @@
+# Coordinate to Words Converter
+# No external dependencies required - pure Python implementation

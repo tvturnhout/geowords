@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoWords - Coordinate to Words Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .input-group input:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .input-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .result {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .result-label {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .result-value {
+            font-size: 24px;
+            color: #667eea;
+            font-weight: 600;
+            word-spacing: 10px;
+        }
+        
+        .accuracy {
+            color: #888;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
+        .examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .example {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+        
+        .example:hover {
+            transform: translateY(-2px);
+            background: #e9ecef;
+        }
+        
+        .example-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .example-words {
+            color: #667eea;
+            font-size: 14px;
+        }
+        
+        .example-coords {
+            color: #888;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: color 0.3s, border-color 0.3s;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            padding: 20px;
+            opacity: 0.9;
+        }
+        
+        .highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1> GeoWords</h1>
+            <p>Convert coordinates to memorable words and back</p>
+        </header>
+
+        <div class="card">
+            <div class="tabs">
+                <div class="tab active" data-tab="encode">Coordinates → Words</div>
+                <div class="tab" data-tab="decode">Words → Coordinates</div>
+            </div>
+
+            <div id="encode" class="tab-content active">
+                <h2>Convert Coordinates to Words</h2>
+                <div class="input-group">
+                    <label>Latitude</label>
+                    <input type="number" id="lat" placeholder="51.62091181" step="0.00000001" min="-90" max="90">
+                </div>
+                <div class="input-group">
+                    <label>Longitude</label>
+                    <input type="number" id="lon" placeholder="5.03525269" step="0.00000001" min="-180" max="180">
+                </div>
+                <button class="btn" onclick="encode()">Convert to Words</button>
+                <div id="encode-result" class="result" style="display: none;">
+                    <div class="result-label">Your location in words:</div>
+                    <div class="result-value" id="words-result"></div>
+                    <div class="accuracy">Accuracy: ~35 meters</div>
+                </div>
+            </div>
+
+            <div id="decode" class="tab-content">
+                <h2>Convert Words to Coordinates</h2>
+                <div class="input-group">
+                    <label>Enter words (comma or space separated)</label>
+                    <textarea id="words" placeholder="love, poppy, star, eternal"></textarea>
+                </div>
+                <button class="btn" onclick="decode()">Convert to Coordinates</button>
+                <div id="decode-result" class="result" style="display: none;">
+                    <div class="result-label">Coordinates:</div>
+                    <div class="result-value" id="coords-result"></div>
+                    <div class="accuracy">Click to copy coordinates</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2> Examples</h2>
+            <div class="examples">
+                <div class="example" onclick="useExample(52.3676, 4.9041, ['maple', 'river', 'stone', 'bridge'])">
+                    <div class="example-name">Amsterdam</div>
+                    <div class="example-words">maple river stone bridge</div>
+                    <div class="example-coords">52.3676, 4.9041</div>
+                </div>
+                <div class="example" onclick="useExample(51.5074, -0.1278, ['ocean', 'valley', 'mountain', 'peak'])">
+                    <div class="example-name">London</div>
+                    <div class="example-words">ocean valley mountain peak</div>
+                    <div class="example-coords">51.5074, -0.1278</div>
+                </div>
+                <div class="example" onclick="useExample(48.8566, 2.3522, ['forest', 'river', 'golden', 'sun'])">
+                    <div class="example-name">Paris</div>
+                    <div class="example-words">forest river golden sun</div>
+                    <div class="example-coords">48.8566, 2.3522</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>ℹ️ How It Works</h2>
+            <p style="color: #666; line-height: 1.6;">
+                GeoWords divides the world into a grid and maps each cell to a unique combination of 4 English words. 
+                The more words used, the higher the accuracy (currently ~35 meters with 4 words). 
+                This makes it easy to share and remember locations without dealing with confusing coordinates!
+            </p>
+        </div>
+
+        <footer>
+            <p>Made with  for memorable locations</p>
+            <p style="margin-top: 10px; font-size: 14px;">
+                <a href="https://github.com/yourusername/gps" style="color: white; text-decoration: none;">View on GitHub</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Word list (same as in Python)
+        const WORDS = [
+            "ocean", "river", "mountain", "valley", "forest", "desert", "island", "coast", "beach", "cliff",
+            "canyon", "plateau", "plain", "meadow", "garden", "field", "farm", "village", "city", "town",
+            "street", "bridge", "tower", "castle", "palace", "temple", "church", "school", "market", "harbor",
+            "port", "dock", "ship", "boat", "plane", "train", "car", "bike", "path", "trail",
+            "road", "highway", "tunnel", "gate", "door", "window", "wall", "roof", "floor", "ceiling",
+            "room", "house", "home", "apartment", "building", "skyscraper", "mall", "park", "square", "plaza",
+            "garden", "yard", "lawn", "tree", "flower", "grass", "leaf", "branch", "root", "seed",
+            "fruit", "apple", "pear", "cherry", "plum", "peach", "apricot", "orange", "lemon", "lime",
+            "grape", "berry", "melon", "mango", "papaya", "coconut", "banana", "pineapple", "kiwi", "fig",
+            "date", "olive", "avocado", "almond", "walnut", "hazelnut", "cashew", "peanut", "chestnut", "pistachio",
+            "bread", "cake", "cookie", "candy", "chocolate", "sugar", "honey", "jam", "jelly", "butter",
+            "cheese", "milk", "yogurt", "cream", "egg", "meat", "chicken", "beef", "pork", "fish",
+            "salmon", "tuna", "cod", "shrimp", "crab", "lobster", "oyster", "clam", "mussel", "scallop",
+            "rice", "pasta", "noodle", "soup", "sauce", "salad", "stew", "roast", "grill", "fry",
+            "bake", "boil", "steam", "poach", "saute", "roast", "broil", "barbecue", "smoke", "cure",
+            "salt", "pepper", "spice", "herb", "garlic", "onion", "shallot", "leek", "celery", "carrot",
+            "potato", "tomato", "cucumber", "lettuce", "spinach", "kale", "cabbage", "broccoli", "cauliflower", "pepper",
+            "zucchini", "squash", "pumpkin", "eggplant", "mushroom", "asparagus", "artichoke", "bean", "pea", "corn",
+            "wheat", "oats", "barley", "rye", "corn", "soy", "lentil", "chickpea", "quinoa", "amaranth",
+            "coffee", "tea", "juice", "water", "wine", "beer", "whiskey", "vodka", "rum", "gin",
+            "brandy", "champagne", "cider", "sake", "mead", "cocktail", "smoothie", "milkshake", "lemonade", "soda",
+            "morning", "afternoon", "evening", "night", "day", "week", "month", "year", "decade", "century",
+            "spring", "summer", "autumn", "winter", "season", "weather", "sunny", "cloudy", "rainy", "stormy",
+            "windy", "snowy", "foggy", "clear", "bright", "dark", "light", "warm", "cool", "cold",
+            "hot", "freezing", "boiling", "melting", "burning", "glowing", "shining", "sparkling", "dazzling", "blinding",
+            "soft", "hard", "smooth", "rough", "sharp", "dull", "heavy", "light", "thick", "thin",
+            "wide", "narrow", "tall", "short", "long", "small", "large", "big", "huge", "tiny",
+            "fast", "slow", "quick", "rapid", "swift", "speedy", "instant", "gradual", "sudden", "steady",
+            "calm", "peaceful", "quiet", "silent", "loud", "noisy", "nois", "hushed", "muted", "deafening",
+            "sweet", "sour", "bitter", "salty", "spicy", "tangy", "zesty", "mild", "strong", "intense",
+            "fresh", "stale", "ripe", "raw", "cooked", "fried", "baked", "grilled", "roasted", "steamed",
+            "whole", "part", "piece", "fragment", "bit", "chunk", "slice", "slice", "cube", "ball",
+            "circle", "square", "triangle", "rectangle", "oval", "sphere", "cube", "pyramid", "cone", "cylinder",
+            "line", "curve", "angle", "corner", "edge", "side", "top", "bottom", "front", "back",
+            "left", "right", "center", "middle", "outer", "inner", "upper", "lower", "above", "below",
+            "near", "far", "close", "distant", "adjacent", "opposite", "parallel", "perpendicular", "diagonal", "horizontal",
+            "vertical", "slanted", "tilted", "upright", "upside", "sideways", "forward", "backward", "inward", "outward",
+            "inside", "outside", "within", "without", "among", "between", "beside", "behind", "before", "after",
+            "during", "since", "until", "while", "when", "where", "which", "what", "who", "whom",
+            "whose", "why", "how", "that", "this", "these", "those", "here", "there", "everywhere",
+            "nowhere", "somewhere", "anywhere", "always", "never", "often", "sometimes", "rarely", "seldom", "frequently",
+            "usually", "normally", "typically", "generally", "specifically", "particularly", "especially", "mainly", "mostly", "primarily",
+            "chiefly", "largely", "partly", "fully", "completely", "entirely", "totally", "absolutely", "perfectly", "exactly",
+            "precisely", "accurately", "correctly", "properly", "rightly", "fairly", "justly", "equally", "evenly", "smoothly",
+            "gently", "softly", "lightly", "heavily", "deeply", "highly", "lowly", "widely", "narrowly", "closely",
+            "tightly", "loosely", "firmly", "securely", "safely", "carefully", "cautiously", "boldly", "bravely", "fearlessly",
+            "happily", "joyfully", "cheerfully", "gladly", "proudly", "humbly", "modestly", "gracefully", "elegantly", "beautifully",
+            "lovely", "sweetly", "kindly", "gently", "warmly", "coldly", "friendly", "hostile", "peaceful", "violent",
+            "gentle", "tender", "soft", "hard", "rough", "smooth", "silky", "velvety", "fuzzy", "furry",
+            "hairy", "bald", "smooth", "bumpy", "wavy", "curly", "straight", "twisted", "bent", "broken",
+            "whole", "complete", "finished", "done", "ready", "prepared", "set", "fixed", "stable", "steady",
+            "moving", "still", "static", "dynamic", "active", "passive", "alive", "dead", "living", "dead",
+            "born", "died", "growing", "shrinking", "expanding", "contracting", "rising", "falling", "climbing", "descending",
+            "ascending", "sinking", "floating", "swimming", "diving", "jumping", "running", "walking", "standing", "sitting",
+            "lying", "sleeping", "waking", "dreaming", "thinking", "feeling", "loving", "hating", "liking", "disliking",
+            "wanting", "needing", "having", "getting", "losing", "finding", "seeking", "searching", "looking", "seeing",
+            "watching", "observing", "noticing", "ignoring", "hearing", "listening", "speaking", "talking", "saying", "telling",
+            "asking", "answering", "questioning", "doubting", "believing", "trusting", "knowing", "learning", "teaching", "studying",
+            "reading", "writing", "drawing", "painting", "creating", "making", "building", "constructing", "destroying", "breaking",
+            "fixing", "repairing", "cleaning", "washing", "drying", "wetting", "heating", "cooling", "freezing", "melting",
+            "burning", "smoking", "steaming", "boiling", "cooking", "eating", "drinking", "tasting", "smelling", "touching",
+            "feeling", "sensing", "perceiving", "understanding", "comprehending", "realizing", "recognizing", "identifying", "distinguishing", "differentiating",
+            "comparing", "contrasting", "matching", "pairing", "grouping", "sorting", "organizing", "arranging", "ordering", "ranking",
+            "counting", "measuring", "weighing", "sizing", "timing", "calculating", "computing", "estimating", "guessing", "predicting",
+            "planning", "preparing", "organizing", "managing", "leading", "following", "guiding", "directing", "controlling", "commanding",
+            "obeying", "complying", "resisting", "fighting", "competing", "cooperating", "helping", "supporting", "assisting", "serving",
+            "working", "playing", "resting", "relaxing", "enjoying", "celebrating", "mourning", "worrying", "fearing", "hoping",
+            "wishing", "dreaming", "imagining", "fantasizing", "thinking", "pondering", "considering", "deciding", "choosing", "selecting",
+            "picking", "grabbing", "holding", "gripping", "clutching", "squeezing", "pressing", "pushing", "pulling", "dragging",
+            "lifting", "lowering", "raising", "dropping", "throwing", "catching", "tossing", "kicking", "hitting", "striking",
+            "punching", "slapping", "pinching", "tickling", "massaging", "rubbing", "scratching", "stroking", "petting", "hugging",
+            "kissing", "embracing", "greeting", "welcoming", "bidding", "leaving", "arriving", "departing", "entering", "exiting",
+            "starting", "beginning", "ending", "finishing", "completing", "achieving", "accomplishing", "succeeding", "failing", "winning",
+            "losing", "gaining", "earning", "spending", "saving", "wasting", "investing", "buying", "selling", "trading",
+            "exchanging", "sharing", "giving", "receiving", "accepting", "refusing", "rejecting", "denying", "allowing", "permitting",
+            "forbidding", "banning", "blocking", "stopping", "preventing", "avoiding", "escaping", "hiding", "seeking", "finding",
+            "discovering", "exploring", "investigating", "examining", "inspecting", "checking", "testing", "trying", "attempting", "practicing",
+            "rehearsing", "performing", "acting", "dancing", "singing", "playing", "music", "instrument", "piano", "guitar",
+            "violin", "drums", "trumpet", "flute", "saxophone", "harmonica", "accordion", "organ", "synthesizer", "keyboard",
+            "microphone", "speaker", "radio", "television", "computer", "phone", "camera", "lens", "screen", "monitor",
+            "display", "image", "picture", "photo", "video", "film", "movie", "show", "program", "channel",
+            "station", "network", "internet", "website", "browser", "search", "engine", "database", "file", "folder",
+            "document", "text", "word", "letter", "number", "symbol", "sign", "mark", "label", "tag",
+            "name", "title", "heading", "caption", "subtitle", "description", "explanation", "definition", "meaning", "sense",
+            "idea", "thought", "concept", "notion", "belief", "opinion", "view", "perspective", "angle", "approach",
+            "method", "technique", "strategy", "tactic", "plan", "scheme", "design", "pattern", "style", "fashion",
+            "trend", "custom", "tradition", "habit", "routine", "ritual", "ceremony", "celebration", "festival", "holiday",
+            "vacation", "trip", "journey", "travel", "tour", "adventure", "expedition", "voyage", "cruise", "flight",
+            "drive", "ride", "walk", "hike", "climb", "run", "jog", "sprint", "dash", "race",
+            "marathon", "sprint", "relay", "steeplechase", "obstacle", "competition", "contest", "match", "game", "sport",
+            "athletics", "fitness", "exercise", "training", "workout", "gym", "studio", "arena", "stadium", "field",
+            "court", "track", "pool", "rink", "slope", "course", "range", "target", "goal", "objective",
+            "purpose", "aim", "intention", "motivation", "drive", "passion", "enthusiasm", "energy", "power", "strength",
+            "force", "might", "vigor", "vitality", "spirit", "soul", "heart", "mind", "brain", "intellect",
+            "wisdom", "knowledge", "understanding", "insight", "awareness", "consciousness", "perception", "intuition", "instinct", "feeling",
+            "emotion", "sentiment", "passion", "desire", "want", "need", "wish", "hope", "dream", "aspiration",
+            "ambition", "goal", "target", "objective", "mission", "vision", "plan", "project", "venture", "enterprise",
+            "business", "company", "corporation", "organization", "institution", "association", "society", "club", "group", "team",
+            "crew", "staff", "personnel", "workforce", "employees", "workers", "colleagues", "partners", "allies", "friends",
+            "companions", "neighbors", "family", "relatives", "parents", "children", "siblings", "cousins", "uncles", "aunts",
+            "grandparents", "grandchildren", "husband", "wife", "spouse", "partner", "lover", "sweetheart", "beloved", "darling",
+            "dear", "love", "poppy", "star", "eternal", "ocean", "mountain", "forest", "valley", "river",
+            "lake", "sea", "beach", "island", "coast", "shore", "cliff", "cave", "hill", "peak",
+            "summit", "ridge", "slope", "plain", "meadow", "field", "garden", "park", "forest", "woods",
+            "trees", "forest", "jungle", "desert", "oasis", "sand", "dune", "rock", "stone", "pebble",
+            "gravel", "soil", "earth", "clay", "mud", "dirt", "dust", "ash", "soot", "smoke",
+            "fire", "flame", "spark", "ember", "coal", "charcoal", "wood", "timber", "plank", "board",
+            "beam", "post", "pole", "stick", "branch", "twig", "leaf", "bloom", "flower", "blossom",
+            "petal", "stem", "root", "seed", "fruit", "berry", "nut", "grain", "corn", "wheat",
+            "oats", "barley", "rice", "pasta", "bread", "cake", "pie", "tart", "cookie", "biscuit",
+            "cracker", "chips", "nuggets", "fries", "salad", "soup", "stew", "curry", "sauce", "gravy",
+            "dressing", "mayonnaise", "ketchup", "mustard", "vinegar", "oil", "butter", "cream", "cheese", "yogurt",
+            "milk", "juice", "soda", "water", "coffee", "tea", "wine", "beer", "ale", "lager",
+            "cider", "spirits", "vodka", "whiskey", "brandy", "rum", "gin", "tequila", "liqueur", "syrup", "honey",
+            "sugar", "salt", "pepper", "spice", "herb", "seasoning", "flavor", "taste", "aroma", "scent",
+            "fragrance", "perfume", "soap", "shampoo", "lotion", "cream", "gel", "foam", "spray", "powder",
+            "paste", "cream", "balm", "ointment", "salve", "medicine", "pill", "tablet", "capsule", "syrup",
+            "injection", "vaccine", "antibiotic", "antiseptic", "disinfectant", "cleaner", "detergent", "bleach", "solvent", "polish",
+            "wax", "varnish", "paint", "stain", "glue", "tape", "string", "rope", "cord", "wire",
+            "cable", "chain", "link", "hook", "nail", "screw", "bolt", "washer", "gasket", "seal",
+            "cap", "lid", "cover", "frown"
+        ];
+
+        const BASE = WORDS.length;
+        const NUM_WORDS = 4;
+        const LAT_CELLS = Math.floor(Math.sqrt(Math.pow(BASE, NUM_WORDS)));
+        const LON_CELLS = LAT_CELLS;
+        const LAT_STEP = 180 / LAT_CELLS;
+        const LON_STEP = 360 / LON_CELLS;
+
+        function encode() {
+            const lat = parseFloat(document.getElementById('lat').value);
+            const lon = parseFloat(document.getElementById('lon').value);
+
+            if (isNaN(lat) || isNaN(lon)) {
+                alert('Please enter valid coordinates');
+                return;
+            }
+
+            if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                alert('Coordinates out of range');
+                return;
+            }
+
+            const latIdx = Math.floor((lat + 90) / LAT_STEP);
+            const lonIdx = Math.floor((lon + 180) / LON_STEP);
+            const combined = latIdx * LON_CELLS + lonIdx;
+
+            const result = [];
+            let temp = combined;
+            for (let i = 0; i < NUM_WORDS; i++) {
+                result.push(WORDS[temp % BASE]);
+                temp = Math.floor(temp / BASE);
+            }
+
+            document.getElementById('words-result').textContent = result.join(' ');
+            document.getElementById('encode-result').style.display = 'block';
+        }
+
+        function decode() {
+            const input = document.getElementById('words').value.toLowerCase();
+            const wordList = input.split(/[\s,]+/).filter(w => w.length > 0);
+
+            if (wordList.length !== NUM_WORDS) {
+                alert(`Please enter exactly ${NUM_WORDS} words`);
+                return;
+
+            }
+
+            const indices = [];
+            for (const word of wordList) {
+                const idx = WORDS.indexOf(word);
+                if (idx === -1) {
+                    alert(`Word "${word}" not found in word list`);
+                    return;
+                }
+                indices.push(idx);
+            }
+
+            let combined = 0;
+            for (let i = 0; i < NUM_WORDS; i++) {
+                combined += indices[i] * Math.pow(BASE, i);
+            }
+
+            const latIdx = Math.floor(combined / LON_CELLS);
+            const lonIdx = combined % LON_CELLS;
+
+            const lat = -90 + latIdx * LAT_STEP + LAT_STEP / 2;
+            const lon = -180 + lonIdx * LON_STEP + LON_STEP / 2;
+
+            document.getElementById('coords-result').textContent = `${lat.toFixed(8)}, ${lon.toFixed(8)}`;
+            document.getElementById('decode-result').style.display = 'block';
+        }
+
+        function useExample(lat, lon, words) {
+            document.querySelector('[data-tab="encode"]').click();
+            document.getElementById('lat').value = lat;
+            document.getElementById('lon').value = lon;
+            encode();
+        }
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Copy coordinates on click
+        document.getElementById('decode-result').addEventListener('click', () => {
+            const coords = document.getElementById('coords-result').textContent;
+            navigator.clipboard.writeText(coords).then(() => {
+                alert('Coordinates copied to clipboard!');
+            });
+        });
+    </script>
+</body>
+</html>
