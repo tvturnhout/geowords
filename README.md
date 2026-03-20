@@ -135,21 +135,23 @@ converter = GeoWords(num_words=4)
 
 The algorithm divides the world into a grid and maps each cell to a unique combination of words. Here's the technical breakdown:
 
+### Core Concept
+
+The world is divided into a grid where each cell maps to a unique combination of 4 English words from a list of 920 words.
+
 ### Grid System
 
 The Earth is divided into a square grid. For 4-word encoding with 920 words:
 - Total unique combinations: 920^4 = 715,678,976,000
-- Grid cells: sqrt(920^4) = 846,400 cells per axis
+- Grid cells per axis: sqrt(920^4) = 846,400
 - Cell size: 180/846400 = 0.000213 degrees latitude (~23.7 meters)
 
 ### Encoding Process
 
 ```python
 def encode(lat, lon, words, num_words=4):
-    base = len(words)
-    cells = int(math.sqrt(base ** num_words))
-    
     # Convert lat/lon to grid indices
+    cells = int(sqrt(len(words) ** num_words))
     lat_idx = int((lat + 90) / (180 / cells))
     lon_idx = int((lon + 180) / (360 / cells))
     
@@ -159,8 +161,8 @@ def encode(lat, lon, words, num_words=4):
     # Convert to base-N word indices
     result = []
     for i in range(num_words):
-        result.append(words[combined % base])
-        combined //= base
+        result.append(words[combined % len(words)])
+        combined //= len(words)
     
     return result
 ```
@@ -169,16 +171,14 @@ def encode(lat, lon, words, num_words=4):
 
 ```python
 def decode(word_string, words, num_words=4):
-    base = len(words)
-    cells = int(math.sqrt(base ** num_words))
-    
     # Convert words to indices
     indices = [words.index(w) for w in word_string.split()]
     
     # Reconstruct combined index
-    combined = sum(idx * (base ** i) for i, idx in enumerate(indices))
+    combined = sum(idx * (len(words) ** i) for i, idx in enumerate(indices))
     
     # Convert back to grid coordinates
+    cells = int(sqrt(len(words) ** num_words))
     lat_idx = combined // cells
     lon_idx = combined % cells
     
@@ -189,7 +189,7 @@ def decode(word_string, words, num_words=4):
     return lat, lon
 ```
 
-### Accuracy
+### Accuracy by Word Count
 
 | Words | Combinations | Grid Cells | Accuracy |
 |-------|-------------|------------|----------|
@@ -197,7 +197,7 @@ def decode(word_string, words, num_words=4):
 | 3 | 778,688,000 | 27,900 | ~70m |
 | 4 | 715,678,976,000 | 846,400 | ~35m |
 
-The accuracy is determined by cell size. With 4 words, each cell is approximately 23m x 46m (longitude cells are wider at higher latitudes).
+**Note:** The accuracy is determined by cell size. With 4 words, each cell is approximately 23m x 46m (longitude cells are wider at higher latitudes due to Earth's curvature).
 
 ## Installation
 
