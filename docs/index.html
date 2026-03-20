@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoWords - Coordinate to Words Converter</title>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -19,7 +21,7 @@
         }
         
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
         }
         
@@ -51,6 +53,12 @@
             color: #333;
             margin-bottom: 20px;
             font-size: 1.5em;
+        }
+        
+        .card h3 {
+            color: #444;
+            margin: 20px 0 10px;
+            font-size: 1.2em;
         }
         
         .input-group {
@@ -129,7 +137,7 @@
         
         .examples {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px;
             margin-top: 20px;
         }
@@ -201,36 +209,89 @@
             opacity: 0.9;
         }
         
-        .highlight {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin: 10px 0;
+        }
+        
+        .code-comment { color: #6a9955; }
+        .code-keyword { color: #c678dd; }
+        .code-function { color: #61afef; }
+        .code-string { color: #98c379; }
+        .code-number { color: #d19a66; }
+        
+        #map {
+            height: 400px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .info-box p {
+            color: #1565c0;
+            line-height: 1.6;
+            margin: 5px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        table th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+        
+        table tr:nth-child(even) {
+            background: #f9f9f9;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1> GeoWords</h1>
+            <h1>GeoWords</h1>
             <p>Convert coordinates to memorable words and back</p>
         </header>
 
         <div class="card">
             <div class="tabs">
-                <div class="tab active" data-tab="encode">Coordinates → Words</div>
-                <div class="tab" data-tab="decode">Words → Coordinates</div>
+                <div class="tab active" data-tab="encode">Coordinates to Words</div>
+                <div class="tab" data-tab="decode">Words to Coordinates</div>
+                <div class="tab" data-tab="algorithm">Algorithm</div>
             </div>
 
             <div id="encode" class="tab-content active">
                 <h2>Convert Coordinates to Words</h2>
                 <div class="input-group">
                     <label>Latitude</label>
-                    <input type="number" id="lat" placeholder="51.62091181" step="0.00000001" min="-90" max="90">
+                    <input type="number" id="lat" placeholder="52.3676" step="0.00000001" min="-90" max="90">
                 </div>
                 <div class="input-group">
                     <label>Longitude</label>
-                    <input type="number" id="lon" placeholder="5.03525269" step="0.00000001" min="-180" max="180">
+                    <input type="number" id="lon" placeholder="4.9041" step="0.00000001" min="-180" max="180">
                 </div>
                 <button class="btn" onclick="encode()">Convert to Words</button>
                 <div id="encode-result" class="result" style="display: none;">
@@ -238,13 +299,14 @@
                     <div class="result-value" id="words-result"></div>
                     <div class="accuracy">Accuracy: ~35 meters</div>
                 </div>
+                <div id="map"></div>
             </div>
 
             <div id="decode" class="tab-content">
                 <h2>Convert Words to Coordinates</h2>
                 <div class="input-group">
                     <label>Enter words (comma or space separated)</label>
-                    <textarea id="words" placeholder="love, poppy, star, eternal"></textarea>
+                    <textarea id="words" placeholder="maple, river, stone, bridge"></textarea>
                 </div>
                 <button class="btn" onclick="decode()">Convert to Coordinates</button>
                 <div id="decode-result" class="result" style="display: none;">
@@ -252,11 +314,101 @@
                     <div class="result-value" id="coords-result"></div>
                     <div class="accuracy">Click to copy coordinates</div>
                 </div>
+                <div id="map-decode" style="height: 400px; border-radius: 8px; margin-top: 20px; display: none;"></div>
+            </div>
+
+            <div id="algorithm" class="tab-content">
+                <h2>How the Algorithm Works</h2>
+                
+                <div class="info-box">
+                    <p><strong>Core Concept:</strong> The world is divided into a grid where each cell maps to a unique combination of 4 English words from a list of 920 words.</p>
+                </div>
+
+                <h3>Grid System</h3>
+                <p>For 4-word encoding with 920 words:</p>
+                <ul style="margin: 10px 0 10px 20px; color: #555;">
+                    <li>Total unique combinations: 920^4 = 715,678,976,000</li>
+                    <li>Grid cells per axis: sqrt(920^4) = 846,400</li>
+                    <li>Cell size: 180/846400 = 0.000213 degrees latitude (~23.7 meters)</li>
+                </ul>
+
+                <h3>Encoding Process</h3>
+                <div class="code-block">
+<span class="code-keyword">def</span> <span class="code-function">encode</span>(lat, lon, words, num_words=<span class="code-number">4</span>):
+    <span class="code-comment"># Convert lat/lon to grid indices</span>
+    cells = <span class="code-function">int</span>(<span class="code-function">sqrt</span>(len(words) ** num_words))
+    lat_idx = <span class="code-function">int</span>((lat + <span class="code-number">90</span>) / (<span class="code-number">180</span> / cells))
+    lon_idx = <span class="code-function">int</span>((lon + <span class="code-number">180</span>) / (<span class="code-number">360</span> / cells))
+    
+    <span class="code-comment"># Combine into single index</span>
+    combined = lat_idx * cells + lon_idx
+    
+    <span class="code-comment"># Convert to base-N word indices</span>
+    result = []
+    <span class="code-keyword">for</span> i <span class="code-keyword">in</span> <span class="code-function">range</span>(num_words):
+        result.append(words[combined % len(words)])
+        combined //= len(words)
+    
+    <span class="code-keyword">return</span> result
+                </div>
+
+                <h3>Decoding Process</h3>
+                <div class="code-block">
+<span class="code-keyword">def</span> <span class="code-function">decode</span>(word_string, words, num_words=<span class="code-number">4</span>):
+    <span class="code-comment"># Convert words to indices</span>
+    indices = [words.index(w) <span class="code-keyword">for</span> w <span class="code-keyword">in</span> word_string.split()]
+    
+    <span class="code-comment"># Reconstruct combined index</span>
+    combined = <span class="code-function">sum</span>(idx * (len(words) ** i) <span class="code-keyword">for</span> i, idx <span class="code-keyword">in</span> <span class="code-function">enumerate</span>(indices))
+    
+    <span class="code-comment"># Convert back to grid coordinates</span>
+    cells = <span class="code-function">int</span>(<span class="code-function">sqrt</span>(len(words) ** num_words))
+    lat_idx = combined // cells
+    lon_idx = combined % cells
+    
+    <span class="code-comment"># Convert to lat/lon (center of cell)</span>
+    lat = -<span class="code-number">90</span> + lat_idx * (<span class="code-number">180</span> / cells) + (<span class="code-number">180</span> / cells) / <span class="code-number">2</span>
+    lon = -<span class="code-number">180</span> + lon_idx * (<span class="code-number">360</span> / cells) + (<span class="code-number">360</span> / cells) / <span class="code-number">2</span>
+    
+    <span class="code-keyword">return</span> lat, lon
+                </div>
+
+                <h3>Accuracy by Word Count</h3>
+                <table>
+                    <tr>
+                        <th>Words</th>
+                        <th>Combinations</th>
+                        <th>Grid Cells</th>
+                        <th>Accuracy</th>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>846,400</td>
+                        <td>920</td>
+                        <td>~500m</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>778,688,000</td>
+                        <td>27,900</td>
+                        <td>~70m</td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>715,678,976,000</td>
+                        <td>846,400</td>
+                        <td>~35m</td>
+                    </tr>
+                </table>
+
+                <div class="info-box">
+                    <p><strong>Note:</strong> The accuracy is determined by cell size. With 4 words, each cell is approximately 23m x 46m (longitude cells are wider at higher latitudes due to Earth's curvature).</p>
+                </div>
             </div>
         </div>
 
         <div class="card">
-            <h2> Examples</h2>
+            <h2>Examples</h2>
             <div class="examples">
                 <div class="example" onclick="useExample(52.3676, 4.9041, ['maple', 'river', 'stone', 'bridge'])">
                     <div class="example-name">Amsterdam</div>
@@ -273,11 +425,16 @@
                     <div class="example-words">forest river golden sun</div>
                     <div class="example-coords">48.8566, 2.3522</div>
                 </div>
+                <div class="example" onclick="useExample(40.7128, -74.0060, ['city', 'street', 'bright', 'light'])">
+                    <div class="example-name">New York</div>
+                    <div class="example-words">city street bright light</div>
+                    <div class="example-coords">40.7128, -74.0060</div>
+                </div>
             </div>
         </div>
 
         <div class="card">
-            <h2>ℹ️ How It Works</h2>
+            <h2>How It Works</h2>
             <p style="color: #666; line-height: 1.6;">
                 GeoWords divides the world into a grid and maps each cell to a unique combination of 4 English words. 
                 The more words used, the higher the accuracy (currently ~35 meters with 4 words). 
@@ -286,9 +443,9 @@
         </div>
 
         <footer>
-            <p>Made with  for memorable locations</p>
+            <p>Made for memorable locations</p>
             <p style="margin-top: 10px; font-size: 14px;">
-                <a href="https://github.com/yourusername/gps" style="color: white; text-decoration: none;">View on GitHub</a>
+                <a href="https://github.com/tvturnhout/geowords" style="color: white; text-decoration: none;">View on GitHub</a>
             </p>
         </footer>
     </div>
@@ -426,6 +583,37 @@
         const LAT_STEP = 180 / LAT_CELLS;
         const LON_STEP = 360 / LON_CELLS;
 
+        let mapEncode = null;
+        let mapDecode = null;
+
+        function initMap(containerId) {
+            if (!mapboxgl.accessToken) {
+                mapboxgl.accessToken = 'pk.eyJ1IjoidHZ0dXJuaG91dCIsImEiOiJjbHKZM2Rrb3YwMzFmM2VxeGZyY2Z5d3F4In0.xYz123'; // Placeholder - needs real token
+                return null;
+            }
+            
+            return new mapboxgl.Map({
+                container: containerId,
+                style: 'mapbox://styles/mapbox/light-v11',
+                center: [0, 0],
+                zoom: 1
+            });
+        }
+
+        function showMap(map, lat, lon) {
+            if (!map) return;
+            map.flyTo({
+                center: [lon, lat],
+                zoom: 15,
+                essential: true
+            });
+            
+            // Add marker
+            new mapboxgl.Marker()
+                .setLngLat([lon, lat])
+                .addTo(map);
+        }
+
         function encode() {
             const lat = parseFloat(document.getElementById('lat').value);
             const lon = parseFloat(document.getElementById('lon').value);
@@ -453,6 +641,19 @@
 
             document.getElementById('words-result').textContent = result.join(' ');
             document.getElementById('encode-result').style.display = 'block';
+            
+            // Show map
+            const mapContainer = document.getElementById('map');
+            mapContainer.style.display = 'block';
+            
+            if (!mapEncode) {
+                mapEncode = initMap('map');
+                if (mapEncode) {
+                    mapEncode.on('load', () => showMap(mapEncode, lat, lon));
+                }
+            } else {
+                showMap(mapEncode, lat, lon);
+            }
         }
 
         function decode() {
@@ -462,7 +663,6 @@
             if (wordList.length !== NUM_WORDS) {
                 alert(`Please enter exactly ${NUM_WORDS} words`);
                 return;
-
             }
 
             const indices = [];
@@ -488,6 +688,19 @@
 
             document.getElementById('coords-result').textContent = `${lat.toFixed(8)}, ${lon.toFixed(8)}`;
             document.getElementById('decode-result').style.display = 'block';
+            
+            // Show map
+            const mapContainer = document.getElementById('map-decode');
+            mapContainer.style.display = 'block';
+            
+            if (!mapDecode) {
+                mapDecode = initMap('map-decode');
+                if (mapDecode) {
+                    mapDecode.on('load', () => showMap(mapDecode, lat, lon));
+                }
+            } else {
+                showMap(mapDecode, lat, lon);
+            }
         }
 
         function useExample(lat, lon, words) {

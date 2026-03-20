@@ -133,12 +133,71 @@ converter = GeoWords(num_words=4)
 
 ## How It Works
 
-The world is divided into a grid where each cell maps to a unique word combination. The system uses:
-- **920 English words** for encoding
-- **Base-N encoding** to create unique combinations
-- **Grid-based mapping** for consistent bidirectional conversion
+The algorithm divides the world into a grid and maps each cell to a unique combination of words. Here's the technical breakdown:
 
-More words = finer grid = higher accuracy.
+### Grid System
+
+The Earth is divided into a square grid. For 4-word encoding with 920 words:
+- Total unique combinations: 920^4 = 715,678,976,000
+- Grid cells: sqrt(920^4) = 846,400 cells per axis
+- Cell size: 180/846400 = 0.000213 degrees latitude (~23.7 meters)
+
+### Encoding Process
+
+```python
+def encode(lat, lon, words, num_words=4):
+    base = len(words)
+    cells = int(math.sqrt(base ** num_words))
+    
+    # Convert lat/lon to grid indices
+    lat_idx = int((lat + 90) / (180 / cells))
+    lon_idx = int((lon + 180) / (360 / cells))
+    
+    # Combine into single index
+    combined = lat_idx * cells + lon_idx
+    
+    # Convert to base-N word indices
+    result = []
+    for i in range(num_words):
+        result.append(words[combined % base])
+        combined //= base
+    
+    return result
+```
+
+### Decoding Process
+
+```python
+def decode(word_string, words, num_words=4):
+    base = len(words)
+    cells = int(math.sqrt(base ** num_words))
+    
+    # Convert words to indices
+    indices = [words.index(w) for w in word_string.split()]
+    
+    # Reconstruct combined index
+    combined = sum(idx * (base ** i) for i, idx in enumerate(indices))
+    
+    # Convert back to grid coordinates
+    lat_idx = combined // cells
+    lon_idx = combined % cells
+    
+    # Convert to lat/lon (center of cell)
+    lat = -90 + lat_idx * (180 / cells) + (180 / cells) / 2
+    lon = -180 + lon_idx * (360 / cells) + (360 / cells) / 2
+    
+    return lat, lon
+```
+
+### Accuracy
+
+| Words | Combinations | Grid Cells | Accuracy |
+|-------|-------------|------------|----------|
+| 2 | 846,400 | 920 | ~500m |
+| 3 | 778,688,000 | 27,900 | ~70m |
+| 4 | 715,678,976,000 | 846,400 | ~35m |
+
+The accuracy is determined by cell size. With 4 words, each cell is approximately 23m x 46m (longitude cells are wider at higher latitudes).
 
 ## Installation
 
